@@ -1,0 +1,21 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Composer
+/vendor/
+composer.lock
+
+# Archivos temporales
+*.log
+*.tmp
+*.bak
+
+# Zips de distribución
+*.zip
