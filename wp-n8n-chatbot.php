@@ -23,7 +23,7 @@ add_action('wp_enqueue_scripts', function() {
     // Cargar la librería de @n8n/chat desde un CDN o bundle propio
     wp_enqueue_script(
         'n8n-chat',
-        'https://unpkg.com/@n8n/chat@latest/dist/web.bundle.min.js',
+        'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js',
         array(),
         null,
         true
