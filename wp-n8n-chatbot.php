@@ -12,7 +12,22 @@ add_action('wp_body_open', function () {
     if (!is_front_page()) return;
     echo '<div id="n8n-chatbot-container" class="n8n-chat-hero"></div>';
     echo '<div id="particles-js"></div>';
-    echo '<div class="count-particles"><span class="js-count-particles">--</span> particles</div>';
+    
+    // Contenido de ejemplo para permitir scroll
+    echo '<div style="margin-top: 100vh; padding: 20px;">
+        <h2>Contenido de ejemplo</h2>
+        <p>Este es un contenido de ejemplo para permitir el scroll.</p>
+        <div style="height: 100vh; background: #f5f5f5; padding: 20px; margin: 20px 0;">
+            Sección 1
+        </div>
+        <div style="height: 100vh; background: #e5e5e5; padding: 20px; margin: 20px 0;">
+            Sección 2
+        </div>
+        <div style="height: 100vh; background: #d5d5d5; padding: 20px; margin: 20px 0;">
+            Sección 3
+        </div>
+    </div>';
+    //echo '<div class="count-particles"><span class="js-count-particles">--</span> particles</div>';
 });
 
 // 2) CSS (estilos del widget + tamaño tipo hero)
@@ -25,8 +40,7 @@ add_action('wp_head', function () {
     // Particles.js library
     echo '<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>';
     
-    // Stats.js library
-    echo '<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>';
+
 
     // Tus estilos (ajustá altura a gusto; 100vh = pantalla completa)
     echo '<style>
@@ -51,6 +65,7 @@ add_action('wp_head', function () {
         overflow: auto !important;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         opacity: 0.7;
+        transition: all 0.3s ease;
       }
 
       @media (max-width: 768px) {
@@ -71,30 +86,7 @@ add_action('wp_head', function () {
         top: 0;
       }
       
-      .count-particles {
-        background: #000022;
-        position: absolute;
-        top: 48px;
-        left: 0;
-        width: 80px;
-        color: #13E8E9;
-        font-size: .8em;
-        text-align: left;
-        text-indent: 4px;
-        line-height: 14px;
-        padding-bottom: 2px;
-        font-family: Helvetica, Arial, sans-serif;
-        font-weight: bold;
-        z-index: 5;
-        -webkit-user-select: none;
-        margin-top: 5px;
-        margin-left: 5px;
-        border-radius: 0 0 3px 3px;
-      }
-      
-      .js-count-particles {
-        font-size: 1.1em;
-      }
+
     </style>';
 }, 20);
 
@@ -108,43 +100,53 @@ add_action('wp_footer', function () {
     echo "<script type='module'>
       import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat@latest/dist/chat.bundle.es.js';
 
-      // Prevenir scroll y saltos
-      const preventJumps = () => {
-        // Prevenir scroll del body
-        document.body.style.overflow = 'hidden';
+      let chatInstance = null;
+      let isEmbedded = false;
+
+      // Función para cambiar el modo del chat
+      const toggleChatMode = () => {
+        const chatContainer = document.querySelector('#n8n-chatbot-container');
+        const particlesArea = document.querySelector('#particles-js');
         
-        // Observar cambios en el DOM para detectar cuando se agrega el formulario
-        const observer = new MutationObserver((mutations) => {
-          const chatContainer = document.querySelector('#n8n-chatbot-container');
-          if (chatContainer) {
-            // Prevenir scroll en el contenedor del chat
-            chatContainer.style.overflow = 'auto';
-            chatContainer.style.position = 'fixed';
-            
-            // Buscar y prevenir submit en formularios
-            const forms = chatContainer.querySelectorAll('form');
-            forms.forEach(form => {
-              if (!form.dataset.prevented) {
-                form.dataset.prevented = 'true';
-                form.addEventListener('submit', (e) => {
-                  e.preventDefault();
-                  // Permitir que el evento se propague para que el chat funcione
-                });
-              }
-            });
-          }
+        if (!chatContainer || !particlesArea) return;
+
+        // Crear el observer para el área de partículas
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (!isEmbedded && !entry.isIntersecting) {
+              // Cambiar a modo embedded cuando las partículas desaparecen
+              isEmbedded = true;
+              chatContainer.style.position = 'fixed';
+              chatContainer.style.top = '20px';
+              chatContainer.style.right = '20px';
+              chatContainer.style.left = 'auto';
+              chatContainer.style.width = '350px';
+              chatContainer.style.height = '500px';
+              chatContainer.style.transition = 'all 0.3s ease';
+              document.body.style.overflow = 'auto';
+            } else if (isEmbedded && entry.isIntersecting) {
+              // Volver a modo hero cuando las partículas son visibles
+              isEmbedded = false;
+              chatContainer.style.position = 'fixed';
+              chatContainer.style.top = '100px';
+              chatContainer.style.left = '100px';
+              chatContainer.style.right = 'auto';
+              chatContainer.style.width = '600px';
+              chatContainer.style.height = '30vh';
+              chatContainer.style.transition = 'all 0.3s ease';
+              document.body.style.overflow = 'hidden';
+            }
+          });
+        }, {
+          threshold: 0.1 // Trigger cuando 10% del elemento es visible
         });
-        
-        // Observar cambios en todo el documento
-        observer.observe(document.body, {
-          childList: true,
-          subtree: true
-        });
+
+        // Observar el área de partículas
+        observer.observe(particlesArea);
       };
 
-      // Aplicar prevención inmediatamente y después de cargar
-      preventJumps();
-      window.addEventListener('load', preventJumps);
+      // Aplicar el observer después de que el chat se cree
+      window.addEventListener('load', toggleChatMode);
       
       createChat({
         webhookUrl: '$webhook_url',
@@ -277,23 +279,6 @@ add_action('wp_footer', function () {
         'retina_detect': true
       });
 
-      // Stats and particle counter
-      var count_particles, stats, update;
-      stats = new Stats;
-      stats.setMode(0);
-      stats.domElement.style.position = 'absolute';
-      stats.domElement.style.left = '0px';
-      stats.domElement.style.top = '0px';
-      document.body.appendChild(stats.domElement);
-      count_particles = document.querySelector('.js-count-particles');
-      update = function() {
-        stats.begin();
-        stats.end();
-        if (window.pJSDom[0].pJS.particles && window.pJSDom[0].pJS.particles.array) {
-          count_particles.innerText = window.pJSDom[0].pJS.particles.array.length;
-        }
-        requestAnimationFrame(update);
-      };
-      requestAnimationFrame(update);
+
     </script>";
 }, 999);
